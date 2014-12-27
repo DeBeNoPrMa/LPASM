@@ -19,10 +19,15 @@ typedef enum SYMBOL_TYPE {
 } S_type;
 
 typedef struct SYMBOL {
-	char name[15];
+	char *name;
 	int value;
 	S_type type;
 } Symbol;
+
+typedef struct DATA {
+	int value;
+	int address;
+} Data;
 
 // INSTRUCTIONS
 
@@ -35,6 +40,7 @@ typedef struct INSTR {
 
 // SECTIONS
 typedef enum SECTION_TYPE {
+	NONE,
 	DATA,
 	TEXT
 } Section_type;
@@ -43,6 +49,8 @@ typedef enum SECTION_TYPE {
 typedef struct SECTION {
 	Section_type s_type;
 	int address;
+	int data_size;
+	int total_size;
 	void *data;
 } Section;
 
