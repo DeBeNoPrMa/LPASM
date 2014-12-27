@@ -27,7 +27,7 @@ Opcode* last_instruction_found;
 
 
 void parse_section(char *line) {
-
+	
 }
 
 void parse_symbol(char *line) {
@@ -75,20 +75,20 @@ uint8_t assembler_main(FILE *fh) {
 	}
 	char line[100];
 	while (fgets(line, 100, fh) != NULL){
-		if (is_empty_line(line)) {
-			printf("Empty line\n");
-		} else if(is_section_declaration(line)) {
-			printf("Section: %s", line);
-			//parse_section(line);
-		} else if (is_symbol_declaration(line)) {
-			printf("Symbol: %s", line);
-			//parse_symbol(line);
-		} else if (is_instruction(line)) {
-			printf("Instruction: %s", line);
-			//parse_instruction(line);
-		} else {
-			printf("Data: %s", line);
-			//parse_data(line);
+		if (!is_empty_line(line)) {
+			if(is_section_declaration(line)) {
+				printf("Section: %s", line);
+				//parse_section(line);
+			} else if (is_symbol_declaration(line)) {
+				printf("Symbol: %s", line);
+				//parse_symbol(line);
+			} else if (is_instruction(line)) {
+				printf("Instruction: %s", line);
+				//parse_instruction(line);
+			} else {
+				printf("Data: %s", line);
+				//parse_data(line);
+			}
 		}
 	}
 	
