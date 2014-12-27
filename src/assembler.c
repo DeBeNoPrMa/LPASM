@@ -240,7 +240,17 @@ void write_output(FILE* fh_out) {
   fprintf(fh_out, "CONTENT BEGIN\n");
 
   for(int i = 0; i < 256; i++) {
-    fprintf(fh_out, "  %-8i:%6.3X;\n", i, mem_table[i]);
+    if(mem_table[i] == 0 && mem_table[i+1] == 0) {
+      int range_start = i;
+      int range_finish = i-1;
+      while(mem_table[i] == 0) {
+        i++;
+        range_finish++;
+      }
+      fprintf(fh_out, "  [%i-%i] :%6.3X;\n", range_start, range_finish, 0);
+    } else {
+      fprintf(fh_out, "  %-8i:%6.3X;\n", i, mem_table[i]);
+    }
   }
 
   fprintf(fh_out, "END;\n");
