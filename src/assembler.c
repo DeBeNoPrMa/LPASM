@@ -24,6 +24,8 @@ Opcode oc_table[OPCODE_TABLE_SIZE] = {
 Symbol s_table[256];
 Section sec_table[15];
 
+int mem_table[256];
+
 int num_sections;
 int num_symbols;
 
@@ -211,20 +213,50 @@ uint8_t is_empty_line(char *line) {
 }
 
 void generate_mem_map() {
-
+  Instr* instructions;
+  Data* data;
+  int mem_slot;
+  int d;
+  for(int i = 0; i < num_sections; i++) {
+    for(int j = 0; j < sec_table[i].data_size; j++) {
+      mem_slot = sec_table[i].address + j;
+      if(sec_table[i].s_type == TEXT) {
+        instructions = (Instr*)sec_table[i].data;
+        d = (instructions[j].opcode->opcode * 0x100) + (instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
+      } else {
+        data = (Data*)sec_table[i].data;
+        d = data[j].value;
+      }
+      mem_table[mem_slot] = d;
+    }
+  }
 }
 
-uint8_t assembler_main(FILE *fh) {
+void write_output(FILE* fh_out) {
+  fprintf(fh_out, "WIDTH=12;\n");
+  fprintf(fh_out, "WIDTH=256;\n");
+  fprintf(fh_out, "ADDRESS_RADIX=DEC;\n");
+  fprintf(fh_out, "DATA_RADIX=HEX;\n");
+  fprintf(fh_out, "CONTENT BEGIN\n");
+
+  for(int i = 0; i < 256; i++) {
+    fprintf(fh_out, "  %-8i:%6.3X;\n", i, mem_table[i]);
+  }
+
+  fprintf(fh_out, "END;\n");
+}
+
+uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   num_symbols = 0;
   num_sections = 0;
   current_address = 0;
 
-  if (fh == NULL) {
+  if (fh_in == NULL) {
     printf("Input file does not exist or can't be opened\n");
     return ERR_FILENOTFOUND;
   }
   char line[100];
-  while (fgets(line, 100, fh) != NULL){
+  while (fgets(line, 100, fh_in) != NULL){
     if (!is_empty_line(line)) {
       if(is_section_declaration(line)) {
         parse_section(line);
@@ -240,26 +272,7 @@ uint8_t assembler_main(FILE *fh) {
 
   generate_mem_map();
 
-  Instr* instructions;
-  Data* data;
-  for(int i = 0; i < num_sections; i++) {
-    if(sec_table[i].s_type == TEXT) {
-      instructions = (Instr*)sec_table[i].data;
-      printf("Section TEXT:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
-
-      for(int j = 0; j < sec_table[i].data_size; j++) {
-        printf("%i: %X%.2X\n", sec_table[i].address + j, instructions[j].opcode->opcode, instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
-      }
-
-    } else if(sec_table[i].s_type == DATA) {
-
-      data = (Data*)sec_table[i].data;
-      printf("Section DATA:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
-      for(int j = 0; j < sec_table[i].data_size; j++) {
-        printf("%i: %.2X\n", sec_table[i].address + j, data[j].value);
-      }
-    }
-  }
+  write_output(fh_out);
   
   return 0;
 }
