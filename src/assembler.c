@@ -64,7 +64,8 @@ Instr* add_instruction() {
 		printf("Realloc\n");
 	}
 
-	instruction = (Instr*)&current_section->data[current_section->data_size];
+	instruction = (Instr*)current_section->data;
+	instruction = &instruction[current_section->data_size];
 	current_section->data_size++;
 
 	return instruction;
@@ -79,7 +80,8 @@ Instr* add_data() {
 		current_section->data = realloc(current_section->data, current_section->total_size);
 	}
 
-	data = (Data*)&current_section->data[current_section->data_size];
+	data = (Data*)current_section->data;
+	data = &data[current_section->data_size];
 	current_section->data_size++;
 
 	return data;
@@ -98,10 +100,8 @@ void parse_section(char *line) {
 
 	if (last_section_found == DATA) {
 		sec_table[num_sections].data = (Data*)malloc(sizeof(Data)*INITIAL_SECTION_SIZE);
-		printf("MALLOC DATA: %X\n", (sec_table[num_sections].data));
 	} else {
 		sec_table[num_sections].data = (Instr*)malloc(sizeof(Instr)*INITIAL_SECTION_SIZE);
-		printf("MALLOC TEXT: %X\n", (sec_table[num_sections].data));
 	}
 
 	current_address = sec_table[num_sections].address;
@@ -119,7 +119,6 @@ void parse_symbol(char *line) {
 		memcpy(s_table[num_symbols].name, name, strlen(name));
 		s_table[num_symbols].value = current_address;
 		s_table[num_symbols].type = Absolute;
-		printf("Symbol created: %s\n", s_table[num_symbols].name);
 	} else {
 		s_table[index].value = current_address;
 		s_table[index].type = Absolute;
@@ -146,7 +145,6 @@ void parse_instruction(char *line) {
 		if(isalpha(param[0])) { // Param is a label
 			int index;
 			index = find_symbol(param);
-
 			if(index != -1) { 	// We have found an existing symbol entry
 				instruction->symbol = &s_table[index];
 				instruction->address = instruction->symbol->value;
@@ -234,9 +232,7 @@ uint8_t assembler_main(FILE *fh) {
 		}
 	}
 
-	for(int i = 0; i < num_symbols; i++) {
-		printf("Symbol: %s value: %i\n", s_table[i].name, s_table[i].value);
-	}
+	//generate_mem_map();
 
 	Instr* instructions;
 	Data* data;
@@ -244,18 +240,14 @@ uint8_t assembler_main(FILE *fh) {
 		if(sec_table[i].s_type == TEXT) {
 			instructions = (Instr*)sec_table[i].data;
 			printf("Section TEXT:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
-			printf("TETE: %i\n", instructions[0].address);
-			/*for(int j = 0; j < sec_table[i].data_size; j++) {
-				printf(instructions[j].address);
-				if(sec_table[i].s_type == TEXT) {
-					//printf("%i%i\n", instructions[j].opcode->opcode, instructions[j].address);
-				}
-			}*/
-		}
-		if(sec_table[i].s_type == DATA) {
+			for(int j = 0; j < sec_table[i].data_size; j++) {
+				printf("%i: %X%.2X\n", sec_table[i].address + j, instructions[j].opcode->opcode, instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
+			}
+		} else if(sec_table[i].s_type == DATA) {
 			data = (Data*)sec_table[i].data;
 			printf("Section DATA:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
 			for(int j = 0; j < sec_table[i].data_size; j++) {
+				printf("%i: %.2X\n", sec_table[i].address + j, data[j].value);
 			}
 		}
 	}
