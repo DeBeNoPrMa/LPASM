@@ -29,6 +29,8 @@ int mem_table[256];
 int num_sections;
 int num_symbols;
 
+int current_line;
+
 Opcode* last_instruction_found;
 S_type last_section_found;
 
@@ -220,6 +222,9 @@ void generate_mem_map() {
   for(int i = 0; i < num_sections; i++) {
     for(int j = 0; j < sec_table[i].data_size; j++) {
       mem_slot = sec_table[i].address + j;
+      if(mem_table[mem_slot] != 0) {
+        printf("Data overlap has been detected on address %i", mem_slot);
+      }
       if(sec_table[i].s_type == TEXT) {
         instructions = (Instr*)sec_table[i].data;
         d = (instructions[j].opcode->opcode * 0x100) + (instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
@@ -261,6 +266,7 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   num_symbols = 0;
   num_sections = 0;
   current_address = 0;
+  current_line = 0;
 
   if (fh_in == NULL) {
     printf("Input file does not exist or can't be opened\n");
@@ -268,6 +274,7 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   }
   char line[100];
   while (fgets(line, 100, fh_in) != NULL){
+    current_line++;
     if (!is_empty_line(line)) {
       if(is_section_declaration(line)) {
         parse_section(line);
