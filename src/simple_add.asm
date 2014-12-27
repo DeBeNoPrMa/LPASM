@@ -5,12 +5,12 @@ vars:
 .text 0x01
 main:
 	ldr1 vars
-	ldr2 vars + 1
+	ldr2 vars
 	add
 	str1 vars
 	cmp
 	bre l1
 	subs
 l1:
-	str1 vars + 1
+	str1 vars
 	fi

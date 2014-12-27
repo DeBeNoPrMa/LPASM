@@ -1,0 +1,26 @@
+.data 0x10
+var1:
+  0x07
+var2:
+  0x09
+var3:
+  0x0
+var4:
+  0x05
+
+.text 0x01
+  ldr1 var1
+loop1:
+  ldr2 var2
+loop2:
+  add
+  str1 var3
+  ldr2 var3
+  ldr1 var4
+  cmp
+  bre loop1
+  ldr1 var3
+  cmp
+  bre loop2
+  ldr1 var1
+  fi

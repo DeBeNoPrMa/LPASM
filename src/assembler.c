@@ -7,7 +7,7 @@
 
 #define OPCODE_TABLE_SIZE 11
 
-const Opcode oc_table[OPCODE_TABLE_SIZE] = {
+Opcode oc_table[OPCODE_TABLE_SIZE] = {
   [0]= {.mnemonic = "ldr1", .opcode = 0x0, .length = 1},
   [1]= {.mnemonic = "ldr2", .opcode = 0x1, .length = 1},
   [2]= {.mnemonic = "add",  .opcode = 0x2, .length = 0},
@@ -72,7 +72,7 @@ Instr* add_instruction() {
 }
 
 // Adds data to current section
-Instr* add_data() {
+Data* add_data() {
   Data *data;
 
   if(current_section->data_size == current_section->total_size) {
@@ -152,7 +152,7 @@ void parse_instruction(char *line) {
         instruction->symbol = add_undefined_symbol(param);
       }
     } else { // Param is an address
-      instruction->symbol = strtol(param, NULL, 16);
+      instruction->address = strtol(param, NULL, 16);
     }
   }
 
@@ -167,6 +167,8 @@ void parse_data(char *line) {
   data_ptr = add_data();
 
   data_ptr->value = strtol(data, NULL, 16);
+
+  current_address++;
 }
 
 uint8_t is_section_declaration(char *line) {
@@ -208,6 +210,10 @@ uint8_t is_empty_line(char *line) {
   return 1;
 }
 
+void generate_mem_map() {
+
+}
+
 uint8_t assembler_main(FILE *fh) {
   num_symbols = 0;
   num_sections = 0;
@@ -232,7 +238,7 @@ uint8_t assembler_main(FILE *fh) {
     }
   }
 
-  //generate_mem_map();
+  generate_mem_map();
 
   Instr* instructions;
   Data* data;
@@ -240,10 +246,13 @@ uint8_t assembler_main(FILE *fh) {
     if(sec_table[i].s_type == TEXT) {
       instructions = (Instr*)sec_table[i].data;
       printf("Section TEXT:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
+
       for(int j = 0; j < sec_table[i].data_size; j++) {
         printf("%i: %X%.2X\n", sec_table[i].address + j, instructions[j].opcode->opcode, instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
       }
+
     } else if(sec_table[i].s_type == DATA) {
+
       data = (Data*)sec_table[i].data;
       printf("Section DATA:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
       for(int j = 0; j < sec_table[i].data_size; j++) {

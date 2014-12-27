@@ -1,14 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "assembler.h"
 
 int main(int argc, char *argv[]) {
-  if(argc == 2) {
-    char* l = argv[1];
+  FILE* fh;
+  char* input_file;
+  for(int i = 1; i < argc; i++) {
+    if(strstr(argv[i], "-i")) {
+      input_file = argv[i+1];
+      i++;
+    }
   }
-  FILE* fh = fopen("simple_add.asm", "r");
+
+  fh = fopen(input_file, "r");
   assembler_main(fh);
   fclose(fh);
-  
+
   return 0;
 }
