@@ -19,14 +19,13 @@ typedef enum SYMBOL_TYPE {
 } S_type;
 
 typedef struct SYMBOL {
-	char *name;
+	char name[15];
 	int value;
 	S_type type;
 } Symbol;
 
 typedef struct DATA {
 	int value;
-	int address;
 } Data;
 
 // INSTRUCTIONS

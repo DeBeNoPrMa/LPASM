@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "assembler.h"
 
@@ -34,7 +35,7 @@ Section* current_section;
 
 int find_symbol(char* symb) {
 	for (int i = 0; i < num_symbols; i++) {
-		if(strcmp(s_table[i].name, symb)) {
+		if(strstr(s_table[i].name, symb)) {
 			return i;
 		}
 	}
@@ -43,7 +44,7 @@ int find_symbol(char* symb) {
 }
 
 Symbol* add_undefined_symbol(char *name) {
-	s_table[num_symbols].name = name;
+	memcpy(s_table[num_symbols].name, name, strlen(name));
 	s_table[num_symbols].value = -1;
 	s_table[num_symbols].type = Undefined;
 
@@ -60,6 +61,7 @@ Instr* add_instruction() {
 	if(current_section->data_size == current_section->total_size) {
 		current_section->total_size *= 2;
 		current_section->data = realloc(current_section->data, current_section->total_size);
+		printf("Realloc\n");
 	}
 
 	instruction = (Instr*)&current_section->data[current_section->data_size];
@@ -68,11 +70,26 @@ Instr* add_instruction() {
 	return instruction;
 }
 
+// Adds data to current section
+Instr* add_data() {
+	Data *data;
+
+	if(current_section->data_size == current_section->total_size) {
+		current_section->total_size *= 2;
+		current_section->data = realloc(current_section->data, current_section->total_size);
+	}
+
+	data = (Data*)&current_section->data[current_section->data_size];
+	current_section->data_size++;
+
+	return data;
+}
+
 void parse_section(char *line) {
 	char* address;
 
-	address = strtok(line, " ");
-	address = strtok(NULL, " ");
+	address = strtok(line, " \n");
+	address = strtok(NULL, " \n");
 
 	sec_table[num_sections].s_type = last_section_found;
 	sec_table[num_sections].address = strtol(address, NULL, 16);
@@ -81,8 +98,10 @@ void parse_section(char *line) {
 
 	if (last_section_found == DATA) {
 		sec_table[num_sections].data = (Data*)malloc(sizeof(Data)*INITIAL_SECTION_SIZE);
+		printf("MALLOC DATA: %X\n", (sec_table[num_sections].data));
 	} else {
 		sec_table[num_sections].data = (Instr*)malloc(sizeof(Instr)*INITIAL_SECTION_SIZE);
+		printf("MALLOC TEXT: %X\n", (sec_table[num_sections].data));
 	}
 
 	current_address = sec_table[num_sections].address;
@@ -92,11 +111,19 @@ void parse_section(char *line) {
 
 void parse_symbol(char *line) {
 	char* name;
+	int index;
 
-	name = strtok(line, " :");
-	s_table[num_symbols].name = name;
-	s_table[num_symbols].value = current_address;
-	s_table[num_symbols].type = Absolute;
+	name = strtok(line, " :\n");
+	index = find_symbol(name);
+	if(index == -1) {
+		memcpy(s_table[num_symbols].name, name, strlen(name));
+		s_table[num_symbols].value = current_address;
+		s_table[num_symbols].type = Absolute;
+		printf("Symbol created: %s\n", s_table[num_symbols].name);
+	} else {
+		s_table[index].value = current_address;
+		s_table[index].type = Absolute;
+	}
 
 	num_symbols++;
 }
@@ -113,8 +140,8 @@ void parse_instruction(char *line) {
 	length = instruction->opcode->length;
 
 	if(length == 1) {
-		param = strtok(line, " ");
-		param = strtok(NULL, " ");
+		param = strtok(line, " \n");
+		param = strtok(NULL, " \n");
 
 		if(isalpha(param[0])) { // Param is a label
 			int index;
@@ -127,7 +154,7 @@ void parse_instruction(char *line) {
 				instruction->symbol = add_undefined_symbol(param);
 			}
 		} else { // Param is an address
-			instruction->symbol = strtol(param, NULL, 16);;
+			instruction->symbol = strtol(param, NULL, 16);
 		}
 	}
 
@@ -135,7 +162,13 @@ void parse_instruction(char *line) {
 }
 
 void parse_data(char *line) {
+	char* data;
+	Data* data_ptr;
 
+	data = strtok(line, " \n");
+	data_ptr = add_data();
+
+	data_ptr->value = strtol(data, NULL, 16);
 }
 
 uint8_t is_section_declaration(char *line) {
@@ -197,6 +230,32 @@ uint8_t assembler_main(FILE *fh) {
 				parse_instruction(line);
 			} else {
 				parse_data(line);
+			}
+		}
+	}
+
+	for(int i = 0; i < num_symbols; i++) {
+		printf("Symbol: %s value: %i\n", s_table[i].name, s_table[i].value);
+	}
+
+	Instr* instructions;
+	Data* data;
+	for(int i = 0; i < num_sections; i++) {
+		if(sec_table[i].s_type == TEXT) {
+			instructions = (Instr*)sec_table[i].data;
+			printf("Section TEXT:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
+			printf("TETE: %i\n", instructions[0].address);
+			/*for(int j = 0; j < sec_table[i].data_size; j++) {
+				printf(instructions[j].address);
+				if(sec_table[i].s_type == TEXT) {
+					//printf("%i%i\n", instructions[j].opcode->opcode, instructions[j].address);
+				}
+			}*/
+		}
+		if(sec_table[i].s_type == DATA) {
+			data = (Data*)sec_table[i].data;
+			printf("Section DATA:\n Address: %i\n Data Size: %i\n", sec_table[i].address, sec_table[i].data_size);
+			for(int j = 0; j < sec_table[i].data_size; j++) {
 			}
 		}
 	}
