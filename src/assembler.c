@@ -262,6 +262,12 @@ void write_output(FILE* fh_out) {
   fprintf(fh_out, "END;\n");
 }
 
+void release_mem() {
+  for(int i = 0; i < num_sections; i++) {
+    free(sec_table[i].data);
+  }
+}
+
 uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   num_symbols = 0;
   num_sections = 0;
@@ -291,6 +297,8 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   generate_mem_map();
 
   write_output(fh_out);
+
+  release_mem();
   
   return 0;
 }
