@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <regex.h>
 
 #include "assembler.h"
 
@@ -37,8 +36,6 @@ S_type last_section_found;
 
 int current_address;
 Section* current_section;
-
-regex_t regex;
 
 int find_symbol(char* symb) {
   for (int i = 0; i < num_symbols; i++) {
@@ -116,12 +113,12 @@ void parse_section(char *line) {
   num_sections++;
 }
 
-int parse_symbol(char *line) {
+void parse_symbol(char *line) {
   char* name;
   int index;
 
   if (current_section == NULL) {
-    lpasm_error_outside_section(current_line);
+    lpasm_error_outside_section(current_line); return;
   }
 
   name = strtok(line, " :\n");
@@ -146,10 +143,10 @@ void parse_instruction(char *line) {
 
   if (current_section != NULL) {
     if (current_section->s_type != TEXT) {
-      lpasm_error_bad_section(current_line);
+      lpasm_error_bad_section(current_line); return;
     }
   } else {
-    lpasm_error_outside_section(current_line);
+    lpasm_error_outside_section(current_line); return;
   }
 
   instruction = add_instruction();
@@ -184,10 +181,10 @@ void parse_data(char *line) {
 
   if (current_section != NULL) {
     if (current_section->s_type != DATA) {
-      lpasm_error_bad_section(current_line); return 1;
+      lpasm_error_bad_section(current_line); return;
     }
   } else {
-    lpasm_error_outside_section(current_line); return 1;
+    lpasm_error_outside_section(current_line); return;
   }
 
   data = strtok(line, " \n");
@@ -307,8 +304,6 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   num_sections = 0;
   current_address = 0;
   current_line = 0;
-
-  regcomp(&regex, "s/^\s+|0[xX][0-9a-fA-F]+", 0);
 
   if (fh_in == NULL) {
     printf("Input file does not exist or can't be opened\n");

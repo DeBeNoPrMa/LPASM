@@ -1,4 +1,5 @@
 #include "errors.h"
+#include <stdio.h>
 
 void lpasm_current_line(int current_line) {
   printf("Error: Line %i: ", current_line);
