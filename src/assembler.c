@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <regex.h>
 
 #include "assembler.h"
 
@@ -36,6 +37,8 @@ S_type last_section_found;
 
 int current_address;
 Section* current_section;
+
+regex_t regex;
 
 int find_symbol(char* symb) {
   for (int i = 0; i < num_symbols; i++) {
@@ -113,9 +116,13 @@ void parse_section(char *line) {
   num_sections++;
 }
 
-void parse_symbol(char *line) {
+int parse_symbol(char *line) {
   char* name;
   int index;
+
+  if (current_section == NULL) {
+    lpasm_error_outside_section(current_line);
+  }
 
   name = strtok(line, " :\n");
   index = find_symbol(name);
@@ -136,6 +143,14 @@ void parse_instruction(char *line) {
   int length;
 
   Instr *instruction;
+
+  if (current_section != NULL) {
+    if (current_section->s_type != TEXT) {
+      lpasm_error_bad_section(current_line);
+    }
+  } else {
+    lpasm_error_outside_section(current_line);
+  }
 
   instruction = add_instruction();
 
@@ -166,6 +181,14 @@ void parse_instruction(char *line) {
 void parse_data(char *line) {
   char* data;
   Data* data_ptr;
+
+  if (current_section != NULL) {
+    if (current_section->s_type != DATA) {
+      lpasm_error_bad_section(current_line); return 1;
+    }
+  } else {
+    lpasm_error_outside_section(current_line); return 1;
+  }
 
   data = strtok(line, " \n");
   data_ptr = add_data();
@@ -205,6 +228,16 @@ uint8_t is_instruction(char *line) {
   return 0;
 }
 
+uint8_t is_data(char *line) {
+  int i = 0;
+  while(line[i] != '\n'){
+    if(line[i] != ' ' && !isxdigit(line[i]) && line[i] != 'x') return 0;
+    i++;
+  }
+  
+  return 1;
+}
+
 uint8_t is_empty_line(char *line) {
   int i = 0;
   while(line[i] != '\n'){
@@ -227,7 +260,8 @@ void generate_mem_map() {
       }
       if(sec_table[i].s_type == TEXT) {
         instructions = (Instr*)sec_table[i].data;
-        d = (instructions[j].opcode->opcode * 0x100) + (instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
+        d = (instructions[j].opcode->opcode * 0x100)
+          + (instructions[j].symbol == NULL ? instructions[j].address : instructions[j].symbol->value);
       } else {
         data = (Data*)sec_table[i].data;
         d = data[j].value;
@@ -274,6 +308,8 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
   current_address = 0;
   current_line = 0;
 
+  regcomp(&regex, "s/^\s+|0[xX][0-9a-fA-F]+", 0);
+
   if (fh_in == NULL) {
     printf("Input file does not exist or can't be opened\n");
     return ERR_FILENOTFOUND;
@@ -288,8 +324,10 @@ uint8_t assembler_main(FILE *fh_in, FILE *fh_out) {
         parse_symbol(line);
       } else if (is_instruction(line)) {
         parse_instruction(line);
-      } else {
+      } else if (is_data(line)) {
         parse_data(line);
+      } else {
+        lpasm_error_not_recognized(current_line);
       }
     }
   }
