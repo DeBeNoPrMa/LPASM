@@ -253,7 +253,7 @@ void write_output(FILE* fh_out) {
         range_finish++;
       }
       i--;
-      fprintf(fh_out, "  [%i-%i] :%6.3X;\n", range_start, range_finish, 0);
+      fprintf(fh_out, "  [%i..%i]:%6.3X;\n", range_start, range_finish, 0);
     } else {
       fprintf(fh_out, "  %-8i:%6.3X;\n", i, mem_table[i]);
     }
